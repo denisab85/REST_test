@@ -1,0 +1,18 @@
+[
+  {
+    "Description" : "Upload a new project with specified projectId: {projectId}",
+    "Method" : "POST",
+    "URI" : "/api/project",
+    "Content" : {"data" : "./Data/Automation.zip", "type" : "application/octet-stream"},
+    "Expected" : { "name": "New Imported Project (2)", "status": "success" },
+    "Enabled" : 0
+  },
+      {
+    "Description" : "Configure and run project {projectId}, {runId} will be assigned by appliance.",
+    "Method" : "POST",
+    "URI" : "/api/project/{projectId}/run",
+    "Parameters" : {"projectId" : "6d97-906b-c2ec-0000"},
+    "Expected" : { "name": "New Imported Project (2)", "status": "success" },
+    "Enabled" : 1
+  }
+]

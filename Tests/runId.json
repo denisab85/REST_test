@@ -1,0 +1,142 @@
+[
+  {
+    "Description" : "Stop port {portId}",
+    "Method" : "PUT",
+    "URI" : "/api/port/{portId}/stop",
+    "Parameters" : {"portId" : 0, "status": "idle"},
+    "Expected" : { "portId": "{portId}", "status": "{status}" },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Stop port {portId}",
+    "Method" : "PUT",
+    "URI" : "/api/port/{portId}/stop",
+    "Parameters" : {"portId" : 1, "status": "idle"},
+    "Expected" : { "portId": "{portId}", "status": "{status}" },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Check that port {portId} is {status}",
+    "Method" : "GET",
+    "URI" : "/api/port/{portId}",
+    "Parameters" : {"portId" : 0, "status": "idle"},
+    "Expected" : { "portId": "{portId}", "status": "{status}" },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Check that port {portId} is {status}",
+    "Method" : "GET",
+    "URI" : "/api/port/{portId}",
+    "Parameters" : {"portId" : 1, "status": "idle"},
+    "Expected" : { "portId": "{portId}", "status": "{status}" },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Upload and run new project as is, with specified runId: {runId}",
+    "Method" : "POST",
+    "URI" : "/api/run/{runId}",
+    "Parameters" : {"runId" : "run_id_0001"},
+    "Content" : {"data" : "./Data/Automation.zip", "type" : "application/octet-stream"},
+    "Expected" : { "runId": "{runId}", "status": "running", "stopped": 0 },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Check that port {portId} is {status}",
+    "Method" : "GET",
+    "URI" : "/api/port/{portId}",
+    "Parameters" : {"portId" : 0, "status": "busy"},
+    "Expected" : { "portId": "{portId}", "status": "{status}" },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Check that port {portId} is {status}",
+    "Method" : "GET",
+    "URI" : "/api/port/{portId}",
+    "Parameters" : {"portId" : 1, "status": "busy"},
+    "Expected" : { "portId": "{portId}", "status": "{status}" },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Check run status",
+    "Method" : "GET",
+    "URI" : "/api/run/{runId}",
+    "Parameters" : {"runId" : "run_id_0001"},
+    "Expected" : {"ports": [{"status": "busy", "portId": 0}, {"status": "busy", "portId": 1}], "status": "running", "runId": "{runId}"},
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Get list of all uploaded projects from appliance",
+    "Method" : "GET",
+    "URI" : "/api/project",
+    "Parameters" : {},
+    "Expected" : { "projects": [ { "name": "New Imported Project (2)", "status": "success" } ] },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Wait until port {portId} is '{status}'",
+    "Method" : "wait_until",
+    "Parameters" : { "portId": 1, "status": "idle" },
+    "Enabled" : 0
+  },
+  {
+    "Description" : "Stop run {runId}",
+    "Method" : "PUT",
+    "URI" : "/api/run/{runId}/stop",
+    "Parameters" : {"runId" : "run_id_0001"},
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Check that port {portId} is {status}",
+    "Method" : "GET",
+    "URI" : "/api/port/{portId}",
+    "Parameters" : {"portId" : 0, "status": "idle"},
+    "Expected" : { "portId": "{portId}", "status": "{status}" },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Check that port {portId} is {status}",
+    "Method" : "GET",
+    "URI" : "/api/port/{portId}",
+    "Parameters" : {"portId" : 1, "status": "idle"},
+    "Expected" : { "portId": "{portId}", "status": "{status}" },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Wait {time} seconds",
+    "Method" : "sleep",
+    "Parameters" : {"time" : "40"},
+    "Enabled" : 0
+  },
+  {
+    "Description" : "Get results of {runId} (zip archive with logs, pcaps, summary etc)",
+    "Method" : "GET",
+    "URI" : "/api/run/{runId}/results",
+    "Parameters" : {"runId" : "run_id_0001"},
+    "Expected" : {"ports": [{"status": "busy", "portId": 0}, {"status": "busy", "portId": 1}], "status": "success", "runId": "{runId}"},
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Remove run {runId} and its results",
+    "Method" : "DELETE",
+    "URI" : "/api/run/{runId}",
+    "Parameters" : {"runId" : "run_id_0001"},
+    "Expected" : {},
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Get list of all uploaded projects from appliance",
+    "Method" : "GET",
+    "URI" : "/api/project",
+    "Parameters" : {},
+    "Expected" : { "projects": [ { "name": "New Imported Project (2)", "status": "success" } ] },
+    "Enabled" : 1
+  },
+  {
+    "Description" : "Get results of {runId} (zip archive with logs, pcaps, summary etc)",
+    "Method" : "GET",
+    "URI" : "/api/run/{runId}/results",
+    "Parameters" : {"runId" : "run_id_0001"},
+    "Expected" : {"ports": [{"status": "busy", "portId": 0}, {"status": "busy", "portId": 1}], "status": "success", "runId": "{runId}"},
+    "Enabled" : 1
+  }
+]
