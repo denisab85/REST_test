@@ -3,6 +3,7 @@ import json
 from xml.etree import ElementTree
 from collections import Counter
 from time import sleep
+import copy
 
 
 def get_app_info(appliance_ip):
@@ -52,14 +53,74 @@ def validate(content, expected, level=0):
     return result
 
 
-def run_action(description, method, uri, parameters, expected):
-    description = insert_params(description, parameters)
+def run_action(test_ip, action, parameters):
+    description = insert_params(action["Description"], parameters)
+    method = action["Method"]
     print('\n\n[ ', description, ' ]')
     result = True
+    output = dict()
+    data = None
+    files = None
 
-    # temporary solution. macros like 'wait_until' and 'sleep' should be described in a separate json file
-    # and should use basic methods which follow after 'else' here
-    if method == "sleep":
+    for par in action.get("Parameters"):
+        if par not in parameters:
+            print("Parameter not found:", par)
+            return False
+
+    if method in ("GET", "PUT", "POST", "DELETE"):
+        uri = action["URI"]
+        uri = insert_params(uri, parameters)
+        content_type = parameters.get("content-type", "text/plain")
+
+        result = False
+        uri = "http://" + test_ip + uri
+        response = ""
+        print(method, uri)
+        if method == "PUT":
+            response = requests.put(uri, data=data, files=files, headers={'Content-Type': content_type})
+        elif method == "GET":
+            response = requests.get(uri, data=data, files=files, headers={'Content-Type': content_type}, stream=True)
+        elif method == "POST":
+            file_path = parameters.get("data", None)
+            if file_path:
+                if content_type == 'application/octet-stream':
+                    data = open(file_path, 'rb').read()
+                elif content_type == 'multipart/form-data':
+                    files = {'file': open(file_path, 'rb')}
+            response = requests.post(uri, data=data, files=files, headers={'Content-Type': content_type})
+        elif method == "DELETE":
+            response = requests.delete(uri, data=data, files=files, headers={'Content-Type': content_type})
+
+        status_code = int(response.status_code)
+        try:
+            content = response.json()
+        except ValueError or json.decoder.JSONDecodeError:
+            content = "JSON format error"
+
+
+        if status_code == 200 or status_code == 201:
+            print(status_code, 'OK', end="")
+            if response.headers.get("Content-Type") == "application/octet-stream":
+                with open('results.tgz', 'wb') as out_file:
+                    for chunk in response.iter_content(chunk_size=1024):
+                        if chunk:
+                            out_file.write(chunk)
+                            out_file.flush()
+                del response
+            else:
+                if "Validate" in action:
+                    expected = copy.deepcopy(action["Validate"])
+                    expected = insert_params(expected, parameters)
+                    result = validate(content, expected)
+            print("")
+            if "Output" in action:
+                for item in action["Output"]:
+                    output[item] = content.get(item)
+        elif status_code == 400:
+            print(status_code, content['errors'])
+        else:
+            print(status_code, response.content)
+    elif method == "sleep":
         sleep(int(parameters.get("time", 0)))
     elif method == "wait_until":
         n = 1
@@ -74,96 +135,49 @@ def run_action(description, method, uri, parameters, expected):
                 print(".", end="", flush=True)
             n += 1
             sleep(1)
-    else:
-        uri = insert_params(uri, parameters)
-        expected = insert_params(expected, parameters)
-        result = False
-        uri = "http://" + test_ip + uri
-        response = ""
-        print(method, uri)
-        if method == "PUT":
-            response = requests.put(uri, data=data, files=files, headers={'Content-Type': content_type})
-        elif method == "GET":
-            response = requests.get(uri, data=data, files=files, headers={'Content-Type': content_type}, stream=True)
-        elif method == "POST":
-            response = requests.post(uri, data=data, files=files, headers={'Content-Type': content_type})
-        elif method == "DELETE":
-            response = requests.delete(uri, data=data, files=files, headers={'Content-Type': content_type})
-
-        status_code = int(response.status_code)
-        try:
-            content = response.json()
-        except ValueError or json.decoder.JSONDecodeError:
-            content = "JSON format error"
-
-        if status_code == 200 or status_code == 201:
-            print(status_code, 'OK', end="")
-            if response.headers.get("Content-Type") == "application/octet-stream":
-                with open('results.tgz', 'wb') as out_file:
-                    for chunk in response.iter_content(chunk_size=1024):
-                        if chunk:
-                            out_file.write(chunk)
-                            out_file.flush()
-                # with open('results.tgz', 'wb') as out_file:
-                #     shutil.copyfileobj(response.raw, out_file)
-                del response
-            else:
-                result = validate(content, expected)
-            print("")
-        elif status_code == 400:
-            print(status_code, content['errors'])
-        else:
-            print(status_code, response.content)
-    return result
+    return result, output
 
 
 # ====================================================================================
 
 # test_ip = "172.17.1.54"
 # test_ip = "192.168.8.104"
-# test_ip = "192.168.8.209"
+test_ip = "192.168.8.209"
 # test_ip = "localhost:8104"
-test_ip = "localhost:8209"
+# test_ip = "localhost:8209"
 
-test_file_path = './Tests/runId.json'
-# test_file_path = './Tests/projectId.json'
-# test_file_path = './Tests/auto_assign_id.json'
+# project_path = './Tests/runId.json'
+project_path = './Tests/projectId.json'
+# project_path = './Tests/auto_assign_id.json'
 
+with open("./actions.json") as actions_file:
+    actions = json.load(actions_file)
 
-project_fileWithPortMismatch = "Automation-port-0-4.zip"
+# ver = get_app_info(test_ip)
+# print("Backend version: " + ver)
 
-
-ver = get_app_info(test_ip)
-print("Backend version: " + ver)
-
-with open(test_file_path) as test_file:
-    tests = json.load(test_file)
+with open(project_path) as test_file:
+    project = json.load(test_file)
 
 stats = Counter()
 
-for test in tests:
-    content_type = 'text/plain'
-    data = None
-    files = None
-
-    content = test.get('Content')
-    if content:
-        file_path = content['data']
-        content_type = content['type']
-        if content_type == 'application/octet-stream':
-            data = open(file_path, 'rb').read()
-        elif content_type == 'multipart/form-data':
-            files = {'file': open(file_path, 'rb')}
-
-    parameters = test.get('Parameters')
-    if test.get("Enabled", 1):
-        description = test.get("Description")
-        method = test.get("Method")
-        uri = test.get("URI")
-        expected = test.get("Expected")
-
-        result = run_action(description, method, uri, parameters, expected)
-        stats[result] += 1
+for action in project:
+    if action.get("Enabled", 1):
+        action_name = action.get("Action")
+        if len(action_name):
+            if action_name in actions:
+                parameters = action.get("Parameters", None)
+                if parameters:
+                    result, output = run_action(test_ip, actions[action_name], parameters)
+                    if action.get("Validate"):
+                         result = result and validate(action["Validate"], output)
+                         stats[result] += 1
+                else:
+                    print("No parameters found for action: " + action_name)
+            else:
+                 print("Action not found: '{}'".format(action.get("Action")))
+        else:
+            print("Action name can not be empty")
 
 print("\n============ totals ============")
 for cnt, num in stats.items():
